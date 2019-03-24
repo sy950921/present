@@ -10,7 +10,7 @@ class Gems():
         for color in COLORS:
             if color not in self.data:
                 self.data[color] = 0
-        self.outData = gemData
-
-    def getGems(self):
-        return self.outData
+    #     self.outData = gemData
+    #
+    # def getGems(self):
+    #     return self.outData

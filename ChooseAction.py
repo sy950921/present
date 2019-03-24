@@ -17,9 +17,15 @@ class Action():
             self.buy_card()
 
     @staticmethod
-    def printbuycard(self, card):
+    def printbuycard(card):
         out = {}
-        out["purchase_card"] = card.getCard()
+        out["purchase_card"] = card[0].getCard()
+        print(json.dumps(out))
+
+    @staticmethod
+    def printbuyreservedcard(card):
+        out = {}
+        out["purchase_card"] = card[0].getCard()
         print(json.dumps(out))
 
     @staticmethod
@@ -39,13 +45,15 @@ class Action():
                     out["get_different_color_games"].append(color)
                 else:
                     out["get_different_color_games"].append(color)
-
-        print(json.dumps(out))
+        if len(out) == 0:
+            Action.printno_action()
+        else:
+            print(json.dumps(out))
 
     @staticmethod
     def printreservedcard(card):
         out = {}
-        out["reserve_card"] = card.getCard()
+        out["purchase_reserved_card"] = card.getCard()
         print(json.dumps(out))
 
     def can_take_gems(self):
@@ -74,7 +82,10 @@ class Action():
         table_cards=self.table.cards
         card=self.purchase_card(table_cards)
         if card!=[]:
-            Action.printbuycard(card)
+            if card[0] in self.player1.reservedCards:
+                Action.printbuyreservedcard(card)
+            else:
+                Action.printbuycard(card)
         else:
             Action.printno_action()
 
@@ -87,27 +98,34 @@ class Action():
             else:
                 Action.printreservedcard(card)
         else:
-            if len(self.player1.reserved_cards)<3:#reserve没满
+            if len(self.player1.reservedCards)<3:#reserve没满
                 card=self.choose_reserved_card(match=True)
                 if card!=None:
                     Action.printreservedcard(card)
                 else:
                     cards_need=self.has_need_card()
                     if cards_need==[]:
-                        gems=self.choose_gems()
+                        gems=self.choose_gems(num_of_can_take)
                         Action.printgems(gems)
                     else:
                         card_to_buy=self.purchase_card(cards_need,True)
                         if card_to_buy!=[]:
-                            Action.printbuycard(card_to_buy)
+                            if card_to_buy in self.player1.reservedCards:
+                                Action.printbuyreservedcard(card_to_buy)
+                            else:
+                                Action.printbuycard(card_to_buy)
                         else:
-                            card_cloest=self.find_cloest_card(cards_need)
+                            card_cloest=self.find_cloest_card()
                             gems=self.need_gems(card_cloest)
                             Action.printgems(gems)
             else:
                 card_to_buy=self.purchase_card(self.table.cards,hasreserved=True)
                 if card_to_buy!=None:
-                    Action.printbuycard(card_to_buy)
+                    if card_to_buy in self.player1.reservedCards:
+                        Action.printbuyreservedcard(card_to_buy)
+                    else:
+                        Action.printbuycard(card_to_buy)
+                    # Action.printbuycard(card_to_buy)
                 else:
                     gems=self.choose_gems(num_of_can_take)
                     Action.printgems(gems)
@@ -138,7 +156,6 @@ class Action():
                         continue
                 num_gold = self.player1.gems["gold"]
                 for color in self.gems_types:
-
                     if (card.costs[color]>self.player1.gems[color] + self.player1.bonus[color]):
                         num_gold=num_gold-(card.costs[color]-(self.player1.gems[color] + self.player1.bonus[color]))
                     if num_gold<0:
@@ -159,7 +176,7 @@ class Action():
                 if score>top_score:
                     choose_card=card
                     top_score=score
-        return choose_card
+        return [choose_card]
 
     def choose_gems(self,num_of_can_take):
         if num_of_can_take>3:
@@ -181,6 +198,7 @@ class Action():
         return gems
 
     def choose_reserved_card(self,match=False):
+        # TODO 二等级卡只留一张
         if match:
             need_color_list=self.need_color()
         def matchcolor(need_color,card):
@@ -209,7 +227,9 @@ class Action():
         :return:
             need_color(list): 所有需要的颜色
         """
-        need_color = [color for color, num in self.player1.reservedCards[0].costs.items()]
+        need_color = []
+        if self.player1.reservedCards != []:
+            need_color = [color for color, num in self.player1.reservedCards[0].costs.items()]
         if self.player1.reservedCards!=[] and \
                         self.player1.reservedCards[0].color not in need_color:
             need_color.append(self.player1.reservedCards[0].color)
@@ -223,6 +243,7 @@ class Action():
             if card.color in need_color_list:
                 cards_need.append(card)
         return cards_need
+
 
     def find_cloest_card(self):
         priosity_card={}
@@ -243,7 +264,7 @@ class Action():
         gems = {"red": 0, "green": 0, "blue": 0, "white": 0, "black": 0}
         for color,num in card_cloest["costs"].items():
             if num<self.player1.bonus[color]+self.player1.gems.data[color]:
-                if self.player1.bonus[color]+self.player1.gems.data[color]-num==2:
+                if self.player1.bonus[color]+self.player1.gems.data[color]-num==2 and self.table.gems.data[color]>=4:
                     gems = {"red": 0, "green": 0, "blue": 0, "white": 0, "black": 0}
                     gems[color]=2
                     break

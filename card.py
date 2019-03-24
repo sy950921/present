@@ -57,6 +57,13 @@ class Card():
                 value = 1
         return value
 
+    def __eq__(self, card2):
+        assert type(card2) == Card
+        if self.level == card2.level and self.score == card2.score and self.color == card2.color:
+            return True
+        else:
+            return False
+
 
 class Noble():
     def __init__(self, nobleData):
